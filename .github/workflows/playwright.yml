@@ -11,7 +11,7 @@ jobs:
   smoke:
     runs-on: ubuntu-latest
     container:
-      image: mcr.microsoft.com/playwright:v1.47.0-jammy  # official Playwright Docker image
+      image: mcr.microsoft.com/playwright:v1.47.0-jammy
     timeout-minutes: 60
     steps:
       - name: Checkout code
@@ -46,10 +46,11 @@ jobs:
             Regards,
             Automation
           attachments: "playwright-report/index.html"
-regression:
+
+  regression:   # 👈 FIXED: must be indented under jobs:
     runs-on: ubuntu-latest
     container:
-      image: mcr.microsoft.com/playwright:v1.47.0-jammy  # official Playwright Docker image
+      image: mcr.microsoft.com/playwright:v1.47.0-jammy
     timeout-minutes: 60
     steps:
       - name: Checkout code
@@ -63,3 +64,24 @@ regression:
         uses: actions/upload-artifact@v4
         with:
           name: playwright-regression-report
+          path: playwright-report/
+          retention-days: 30
+      - name: Send email with regression report
+        if: always()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.EMAIL_USER }}
+          password: ${{ secrets.EMAIL_PASS }}
+          subject: "Playwright Regression Test Report - ${{ job.status }}"
+          to: "manishdandotiya227@gmail.com"
+          from: "GitHub Actions <${{ secrets.EMAIL_USER }}>"
+          body: |
+            Hi Team,
+            The Playwright regression test run has completed.
+            ✅ Status: ${{ job.status }}
+            Please find the attached Playwright Regression Test Report.
+            Regards,
+            Automation
+          attachments: "playwright-report/index.html"
