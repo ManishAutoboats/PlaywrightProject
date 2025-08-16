@@ -11,15 +11,18 @@ jobs:
   smoke:
     runs-on: ubuntu-latest
     container:
-      image: mcr.microsoft.com/playwright:v1.47.0-jammy
+      image: mcr.microsoft.com/playwright:v1.54.2-jammy   # ✅ updated Playwright Docker image
     timeout-minutes: 60
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
       - name: Install dependencies
         run: npm ci
+
       - name: Run Playwright smoke tests
         run: npx playwright test --grep @smoke --reporter=html
+
       - name: Upload Playwright smoke test results
         if: always()
         uses: actions/upload-artifact@v4
@@ -27,6 +30,7 @@ jobs:
           name: playwright-smoke-report
           path: playwright-report/
           retention-days: 30
+
       - name: Send email with smoke report
         if: always()
         uses: dawidd6/action-send-mail@v3
@@ -47,18 +51,21 @@ jobs:
             Automation
           attachments: "playwright-report/index.html"
 
-  regression:   # 👈 FIXED: must be indented under jobs:
+  regression:
     runs-on: ubuntu-latest
     container:
-      image: mcr.microsoft.com/playwright:v1.47.0-jammy
+      image: mcr.microsoft.com/playwright:v1.54.2-jammy   # ✅ updated Playwright Docker image
     timeout-minutes: 60
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
       - name: Install dependencies
         run: npm ci
+
       - name: Run Playwright regression tests
         run: npx playwright test --grep @regression --reporter=html
+
       - name: Upload Playwright regression test results
         if: always()
         uses: actions/upload-artifact@v4
@@ -66,6 +73,7 @@ jobs:
           name: playwright-regression-report
           path: playwright-report/
           retention-days: 30
+
       - name: Send email with regression report
         if: always()
         uses: dawidd6/action-send-mail@v3
