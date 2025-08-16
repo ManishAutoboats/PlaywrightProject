@@ -1,7 +1,7 @@
 name: Playwright Tests
 
 on:
-  workflow_dispatch:        # Manual trigger
+  workflow_dispatch:
   push:
     branches: [ main, master ]
   pull_request:
@@ -10,18 +10,14 @@ on:
 jobs:
   smoke:
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.47.0-jammy  # official Playwright Docker image
     timeout-minutes: 60
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: lts/*
       - name: Install dependencies
         run: npm ci
-      - name: Install Playwright Browsers
-        run: npx playwright install --with-deps
       - name: Run Playwright smoke tests
         run: npx playwright test --grep @smoke --reporter=html
       - name: Upload Playwright smoke test results
@@ -45,29 +41,21 @@ jobs:
           body: |
             Hi Team,
             The Playwright smoke test run has completed.
-
             ✅ Status: ${{ job.status }}
-
             Please find the attached Playwright Smoke Test Report.
-
             Regards,
             Automation
           attachments: "playwright-report/index.html"
-
-  regression:
+regression:
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.47.0-jammy  # official Playwright Docker image
     timeout-minutes: 60
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: lts/*
       - name: Install dependencies
         run: npm ci
-      - name: Install Playwright Browsers
-        run: npx playwright install --with-deps
       - name: Run Playwright regression tests
         run: npx playwright test --grep @regression --reporter=html
       - name: Upload Playwright regression test results
@@ -75,27 +63,3 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: playwright-regression-report
-          path: playwright-report/
-          retention-days: 30
-      - name: Send email with regression report
-        if: always()
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp.gmail.com
-          server_port: 465
-          username: ${{ secrets.EMAIL_USER }}
-          password: ${{ secrets.EMAIL_PASS }}
-          subject: "Playwright Regression Test Report - ${{ job.status }}"
-          to: "manishdandotiya227@gmail.com"
-          from: "GitHub Actions <${{ secrets.EMAIL_USER }}>"
-          body: |
-            Hi Team,
-            The Playwright regression test run has completed.
-
-            ✅ Status: ${{ job.status }}
-
-            Please find the attached Playwright Regression Test Report.
-
-            Regards,
-            Automation
-          attachments: "playwright-report/index.html"
