@@ -26,8 +26,87 @@ jobs:
 
       - name: Run Playwright smoke tests
         run: |
-          if [ "${{ github.event.inputs.browser }}" == "all" ]; then
+          if [ "${{ github.event.inputs.browser }}" = "all" ]; then
             npx playwright test --grep @smoke --reporter=html
           else
             npx playwright test --grep @smoke --reporter=html --project=${{ github.event.inputs.browser }}
           fi
+
+      - name: Upload Playwright smoke test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-smoke-report
+          path: |
+            playwright-report/
+            test-results/   # screenshots, videos, traces
+          retention-days: 30
+
+      - name: Send email with smoke report
+        if: always()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.EMAIL_USER }}
+          password: ${{ secrets.EMAIL_PASS }}
+          subject: "Playwright Smoke Test Report - ${{ job.status }}"
+          to: "manishdandotiya227@gmail.com"
+          from: "GitHub Actions <${{ secrets.EMAIL_USER }}>"
+          body: |
+            Hi Team,
+            ✅ Smoke test execution completed.
+            Status: ${{ job.status }}
+            Browser: ${{ github.event.inputs.browser }}
+
+            Reports, screenshots and videos are attached/uploaded as artifacts.
+          attachments: "playwright-report/index.html"
+
+  regression:
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.54.2-jammy
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Playwright regression tests
+        run: |
+          if [ "${{ github.event.inputs.browser }}" = "all" ]; then
+            npx playwright test --grep @regression --reporter=html
+          else
+            npx playwright test --grep @regression --reporter=html --project=${{ github.event.inputs.browser }}
+          fi
+
+      - name: Upload Playwright regression test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-regression-report
+          path: |
+            playwright-report/
+            test-results/   # screenshots, videos, traces
+          retention-days: 30
+
+      - name: Send email with regression report
+        if: always()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.EMAIL_USER }}
+          password: ${{ secrets.EMAIL_PASS }}
+          subject: "Playwright Regression Test Report - ${{ job.status }}"
+          to: "manishdandotiya227@gmail.com"
+          from: "GitHub Actions <${{ secrets.EMAIL_USER }}>"
+          body: |
+            Hi Team,
+            ✅ Regression test execution completed.
+            Status: ${{ job.status }}
+            Browser: ${{ github.event.inputs.browser }}
+
+            Reports, screenshots and videos are attached/uploaded as artifacts.
+          attachments: "playwright-report/index.html"
