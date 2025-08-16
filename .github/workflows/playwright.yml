@@ -30,7 +30,12 @@ jobs:
       - name: Run Playwright tests
         run: npx playwright test --reporter=html
 
-      # Upload report as artifact (optional)
+      # Zip report for email
+      - name: Zip report
+        if: always()
+        run: zip -r playwright-report.zip playwright-report
+
+      # Upload report as artifact (optional - for download in GitHub UI)
       - name: Upload Playwright test results
         if: always()
         uses: actions/upload-artifact@v4
@@ -46,10 +51,16 @@ jobs:
         with:
           server_address: smtp.gmail.com
           server_port: 465
-          username: GitActions
-          password: oselndeuzdmhwirr
+          username: ${{ secrets.EMAIL_USER }}
+          password: ${{ secrets.EMAIL_PASS }}
           subject: "Playwright Test Report"
           to: "manishdandotiya227@gmail.com"
           from: "GitHub Actions <${{ secrets.EMAIL_USER }}>"
-          body: "Hi Team,\n\nPlease find the attached Playwright Test Report.\n\nRegards,\nAutomation"
-          attachments: "playwright-report/index.html"
+          body: |
+            Hi Team,
+
+            Please find the attached Playwright Test Report.
+
+            Regards,
+            Automation
+          attachments: "playwright-report.zip"
