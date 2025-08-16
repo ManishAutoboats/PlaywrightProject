@@ -7,40 +7,32 @@ on:
   pull_request:
     branches: [ main, master ]
 
-jobs:
-  test:
+
+
+  smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 60
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: lts/*
-
       - name: Install dependencies
         run: npm ci
-
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
-
-      - name: Run Playwright tests
-        run: npx playwright test --reporter=html
-
-      # Upload report as artifact
-      - name: Upload Playwright test results
+      - name: Run Playwright smoke tests
+        run: npx playwright test --grep @smoke --reporter=html
+      - name: Upload Playwright smoke test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-smoke-report
           path: playwright-report/
           retention-days: 30
-
-      # Send email with build status + report
-      - name: Send email with report
+      - name: Send email with smoke report
         if: always()
         uses: dawidd6/action-send-mail@v3
         with:
@@ -48,18 +40,57 @@ jobs:
           server_port: 465
           username: ${{ secrets.EMAIL_USER }}
           password: ${{ secrets.EMAIL_PASS }}
-          subject: "Playwright Test Report - ${{ job.status }}"
+          subject: "Playwright Smoke Test Report - ${{ job.status }}"
           to: "manishdandotiya227@gmail.com"
           from: "GitHub Actions <${{ secrets.EMAIL_USER }}>"
           body: |
             Hi Team,
-
-            The Playwright test run has completed.
-
+            The Playwright smoke test run has completed.
             ✅ Status: ${{ job.status }}
+            Please find the attached Playwright Smoke Test Report.
+            Regards,
+            Automation
+          attachments: "playwright-report/index.html"
 
-            Please find the attached Playwright Test Report.
-
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+      - name: Run Playwright regression tests
+        run: npx playwright test --grep @regression --reporter=html
+      - name: Upload Playwright regression test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-regression-report
+          path: playwright-report/
+          retention-days: 30
+      - name: Send email with regression report
+        if: always()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.EMAIL_USER }}
+          password: ${{ secrets.EMAIL_PASS }}
+          subject: "Playwright Regression Test Report - ${{ job.status }}"
+          to: "manishdandotiya227@gmail.com"
+          from: "GitHub Actions <${{ secrets.EMAIL_USER }}>"
+          body: |
+            Hi Team,
+            The Playwright regression test run has completed.
+            ✅ Status: ${{ job.status }}
+            Please find the attached Playwright Regression Test Report.
             Regards,
             Automation
           attachments: "playwright-report/index.html"
