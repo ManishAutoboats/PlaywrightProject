@@ -26,41 +26,18 @@ jobs:
 
       - name: Run Playwright smoke tests
         run: |
-          if [ "${{ github.event.inputs.browser }}" = "all" ]; then
+          BROWSER=${{ github.event.inputs.browser || 'chromium' }}
+          if [ "$BROWSER" = "all" ]; then
             npx playwright test --grep @smoke --reporter=html
           else
-            npx playwright test --grep @smoke --reporter=html --project=${{ github.event.inputs.browser }}
+            npx playwright test --grep @smoke --reporter=html --project=$BROWSER
           fi
 
-      - name: Upload Playwright smoke test artifacts
-        if: always()
+      - name: Upload HTML Report
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-smoke-report
-          path: |
-            playwright-report/
-            test-results/   # screenshots, videos, traces
-          retention-days: 30
-
-      - name: Send email with smoke report
-        if: always()
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp.gmail.com
-          server_port: 465
-          username: ${{ secrets.EMAIL_USER }}
-          password: ${{ secrets.EMAIL_PASS }}
-          subject: "Playwright Smoke Test Report - ${{ job.status }}"
-          to: "manishdandotiya227@gmail.com"
-          from: "GitHub Actions <${{ secrets.EMAIL_USER }}>"
-          body: |
-            Hi Team,
-            ✅ Smoke test execution completed.
-            Status: ${{ job.status }}
-            Browser: ${{ github.event.inputs.browser }}
-
-            Reports, screenshots and videos are attached/uploaded as artifacts.
-          attachments: "playwright-report/index.html"
+          name: smoke-report
+          path: playwright-report
 
   regression:
     runs-on: ubuntu-latest
@@ -75,38 +52,47 @@ jobs:
 
       - name: Run Playwright regression tests
         run: |
-          if [ "${{ github.event.inputs.browser }}" = "all" ]; then
+          BROWSER=${{ github.event.inputs.browser || 'chromium' }}
+          if [ "$BROWSER" = "all" ]; then
             npx playwright test --grep @regression --reporter=html
           else
-            npx playwright test --grep @regression --reporter=html --project=${{ github.event.inputs.browser }}
+            npx playwright test --grep @regression --reporter=html --project=$BROWSER
           fi
 
-      - name: Upload Playwright regression test artifacts
-        if: always()
+      - name: Upload HTML Report
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-regression-report
-          path: |
-            playwright-report/
-            test-results/   # screenshots, videos, traces
-          retention-days: 30
+          name: regression-report
+          path: playwright-report
 
-      - name: Send email with regression report
-        if: always()
+  notify:
+    needs: [smoke, regression]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download reports
+        uses: actions/download-artifact@v4
+        with:
+          path: ./reports
+
+      - name: Send email with report
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
           server_port: 465
           username: ${{ secrets.EMAIL_USER }}
           password: ${{ secrets.EMAIL_PASS }}
-          subject: "Playwright Regression Test Report - ${{ job.status }}"
-          to: "manishdandotiya227@gmail.com"
+          subject: "Playwright Test Report - ${{ job.status }}"
+          to: manishdandotiya227@gmail.com
           from: "GitHub Actions <${{ secrets.EMAIL_USER }}>"
           body: |
             Hi Team,
-            ✅ Regression test execution completed.
-            Status: ${{ job.status }}
-            Browser: ${{ github.event.inputs.browser }}
 
-            Reports, screenshots and videos are attached/uploaded as artifacts.
-          attachments: "playwright-report/index.html"
+            Playwright test execution completed.
+
+            Build Status: ${{ job.status }}
+
+            Please find the attached reports for smoke and regression tests.
+
+            Regards,
+            Automation
+          attachments: ./reports/**/index.html
